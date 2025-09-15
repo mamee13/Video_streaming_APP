@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
+const SIGNALING_SERVER =
+  import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
+
 const ICE_CONFIG = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
@@ -15,19 +17,23 @@ export default function Broadcaster({ streamId, onStop }) {
   const socketRef = useRef(null);
   const pcsRef = useRef(new Map()); // viewerId -> RTCPeerConnection
   const localStreamRef = useRef(null);
+
   const [publishing, setPublishing] = useState(false);
 
+  // Make sure local video updates when stream changes
   useEffect(() => {
-    return () => {
-      stopBroadcast();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [publishing]);
 
   async function startBroadcast() {
     try {
       // get camera/mic first (so we can attach tracks to every PC)
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
@@ -35,13 +41,16 @@ export default function Broadcaster({ streamId, onStop }) {
       const socket = io(SIGNALING_SERVER);
       socketRef.current = socket;
 
-      socket.on("connect", () => console.log("broadcaster socket connected", socket.id));
+      socket.on("connect", () =>
+        console.log("broadcaster socket connected", socket.id)
+      );
       socket.emit("register-broadcaster", { streamId });
 
       // viewer -> sends offer (from viewerId)
       socket.on("offer", async ({ from, sdp }) => {
         try {
           console.log("Received offer from viewer", from);
+
           // create PC for this viewer
           const pc = new RTCPeerConnection(ICE_CONFIG);
           pcsRef.current.set(from, pc);
@@ -56,7 +65,9 @@ export default function Broadcaster({ streamId, onStop }) {
           pc.onconnectionstatechange = () => {
             const st = pc.connectionState;
             if (st === "failed" || st === "closed" || st === "disconnected") {
-              try { pc.close(); } catch (e) {}
+              try {
+                pc.close();
+              } catch (e) {}
               pcsRef.current.delete(from);
             }
           };
@@ -106,28 +117,51 @@ export default function Broadcaster({ streamId, onStop }) {
     try {
       socketRef.current?.disconnect();
     } catch (e) {}
+
     try {
       pcsRef.current.forEach((pc) => {
-        try { pc.close(); } catch (e) {}
+        try {
+          pc.close();
+        } catch (e) {}
       });
       pcsRef.current.clear();
     } catch (e) {}
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
+
     setPublishing(false);
     if (onStop) onStop();
   }
 
   return (
-    <div>
-      <video ref={localVideoRef} autoPlay muted playsInline style={{ width: "100%", maxWidth: 720, background: "black" }} />
-      <div style={{ marginTop: 8 }}>
+    <div className="flex flex-col items-center p-4">
+      <h2 className="text-lg font-bold mb-2">Broadcasting</h2>
+
+      <video
+        ref={localVideoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{
+          width: "100%",
+          maxWidth: 720,
+          background: "black",
+          borderRadius: "8px",
+        }}
+      />
+
+      <div style={{ marginTop: 12 }}>
         {!publishing ? (
-          <button onClick={startBroadcast}>Start Broadcasting</button>
+          <button type="button" onClick={startBroadcast}>
+            Start Broadcasting
+          </button>
         ) : (
-          <button onClick={stopBroadcast}>Stop Broadcasting</button>
+          <button type="button" onClick={stopBroadcast}>
+            Stop Broadcasting
+          </button>
         )}
       </div>
     </div>
