@@ -25,6 +25,8 @@ export default function Viewer({ streamId }) {
   const [newComment, setNewComment] = useState("");
   const [username, setUsername] = useState(`Viewer${Math.floor(Math.random() * 1000)}`);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -205,12 +207,48 @@ export default function Viewer({ streamId }) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.volume = newVolume;
+    }
+    if (newVolume > 0 && isMuted) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    if (remoteVideoRef.current) {
+      const newMuted = !isMuted;
+      remoteVideoRef.current.muted = newMuted;
+      setIsMuted(newMuted);
+      if (newMuted) {
+        setVolume(0);
+      } else {
+        setVolume(remoteVideoRef.current.volume || 1);
+      }
+    }
+  };
+
   return (
     <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ flex: 1 }}>
         <video ref={remoteVideoRef} autoPlay playsInline controls={false} style={{ width: "100%", maxWidth: 720, background: "black" }} />
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: '10px' }}>
           {!connected ? <small>Connecting...</small> : <small>Live</small>}
+          <button onClick={toggleMute} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+            {isMuted ? 'Unmute' : 'Mute'}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={volume}
+            onChange={handleVolumeChange}
+            style={{ width: '100px' }}
+          />
           <button onClick={toggleFullscreen} style={{ padding: '5px 10px', cursor: 'pointer' }}>
             {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </button>

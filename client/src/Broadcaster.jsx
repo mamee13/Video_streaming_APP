@@ -23,6 +23,9 @@ export default function Broadcaster({ streamId, onStop }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [username, setUsername] = useState("Broadcaster");
+  const [volume, setVolume] = useState(0); // Start muted
+  const [isMuted, setIsMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Make sure local video updates when stream changes
   useEffect(() => {
@@ -169,6 +172,57 @@ export default function Broadcaster({ streamId, onStop }) {
     }
   };
 
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (localVideoRef.current) {
+      localVideoRef.current.volume = newVolume;
+    }
+    if (newVolume > 0 && isMuted) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    if (localVideoRef.current) {
+      const newMuted = !isMuted;
+      localVideoRef.current.muted = newMuted;
+      setIsMuted(newMuted);
+      if (newMuted) {
+        setVolume(0);
+      } else {
+        setVolume(localVideoRef.current.volume || 1);
+      }
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      try {
+        await localVideoRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error('Failed to enter fullscreen:', err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error('Failed to exit fullscreen:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
     <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ flex: 1 }}>
@@ -187,7 +241,7 @@ export default function Broadcaster({ streamId, onStop }) {
           }}
         />
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {!publishing ? (
             <button type="button" onClick={startBroadcast}>
               Start Broadcasting
@@ -196,6 +250,25 @@ export default function Broadcaster({ streamId, onStop }) {
             <button type="button" onClick={stopBroadcast}>
               Stop Broadcasting
             </button>
+          )}
+          {publishing && (
+            <>
+              <button onClick={toggleMute} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+                {isMuted ? 'Unmute' : 'Mute'}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={volume}
+                onChange={handleVolumeChange}
+                style={{ width: '100px' }}
+              />
+              <button onClick={toggleFullscreen} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              </button>
+            </>
           )}
         </div>
       </div>
