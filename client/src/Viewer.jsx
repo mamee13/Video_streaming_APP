@@ -27,6 +27,8 @@ export default function Viewer({ streamId }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -46,6 +48,15 @@ export default function Viewer({ streamId }) {
             setComments(response.data);
           } catch (err) {
             console.error("Failed to fetch comments:", err);
+          }
+
+          // Fetch initial likes and dislikes
+          try {
+            const response = await API.get(`/streams/${streamId}/reactions`);
+            setLikes(response.data.likes);
+            setDislikes(response.data.dislikes);
+          } catch (err) {
+            console.error("Failed to fetch reactions:", err);
           }
         });
 
@@ -142,6 +153,12 @@ export default function Viewer({ streamId }) {
           setComments(prev => [...prev, comment]);
         });
 
+        // Listen for reaction updates
+        socket.on("reaction-update", ({ likes, dislikes }) => {
+          setLikes(likes);
+          setDislikes(dislikes);
+        });
+
         // Create recvonly transceivers to ensure offer contains m= lines
         pc.addTransceiver("video", { direction: "recvonly" });
         pc.addTransceiver("audio", { direction: "recvonly" });
@@ -231,6 +248,26 @@ export default function Viewer({ streamId }) {
     }
   };
 
+  const handleLike = async () => {
+    try {
+      const response = await API.post(`/streams/${streamId}/like`);
+      setLikes(response.data.likes);
+      setDislikes(response.data.dislikes);
+    } catch (err) {
+      console.error("Failed to like:", err);
+    }
+  };
+
+  const handleDislike = async () => {
+    try {
+      const response = await API.post(`/streams/${streamId}/dislike`);
+      setLikes(response.data.likes);
+      setDislikes(response.data.dislikes);
+    } catch (err) {
+      console.error("Failed to dislike:", err);
+    }
+  };
+
   return (
     <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ flex: 1 }}>
@@ -252,6 +289,14 @@ export default function Viewer({ streamId }) {
           <button onClick={toggleFullscreen} style={{ padding: '5px 10px', cursor: 'pointer' }}>
             {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <button onClick={handleLike} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px' }}>
+              👍 {likes}
+            </button>
+            <button onClick={handleDislike} style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px' }}>
+              👎 {dislikes}
+            </button>
+          </div>
         </div>
       </div>
 

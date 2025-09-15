@@ -76,6 +76,60 @@ app.post('/streams/:id/stop', async (req, res) => {
   }
 });
 
+/**
+ * Get likes and dislikes for a stream
+ * GET /streams/:id/reactions
+ */
+app.get('/streams/:id/reactions', async (req, res) => {
+  try {
+    const stream = await Stream.findById(req.params.id);
+    if (!stream) return res.status(404).json({ error: 'Stream not found' });
+    res.json({ likes: stream.likes, dislikes: stream.dislikes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Like a stream
+ * POST /streams/:id/like
+ */
+app.post('/streams/:id/like', async (req, res) => {
+  try {
+    const stream = await Stream.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { likes: 1 } },
+      { new: true }
+    );
+    if (!stream) return res.status(404).json({ error: 'Stream not found' });
+    // Broadcast update to all viewers in the stream room
+    io.to(req.params.id).emit('reaction-update', { likes: stream.likes, dislikes: stream.dislikes });
+    res.json({ likes: stream.likes, dislikes: stream.dislikes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Dislike a stream
+ * POST /streams/:id/dislike
+ */
+app.post('/streams/:id/dislike', async (req, res) => {
+  try {
+    const stream = await Stream.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { dislikes: 1 } },
+      { new: true }
+    );
+    if (!stream) return res.status(404).json({ error: 'Stream not found' });
+    // Broadcast update to all viewers in the stream room
+    io.to(req.params.id).emit('reaction-update', { likes: stream.likes, dislikes: stream.dislikes });
+    res.json({ likes: stream.likes, dislikes: stream.dislikes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // REST API Endpoints for Comments
 
 /**
