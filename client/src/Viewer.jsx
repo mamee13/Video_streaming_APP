@@ -24,6 +24,7 @@ export default function Viewer({ streamId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [username, setUsername] = useState(`Viewer${Math.floor(Math.random() * 1000)}`);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -177,12 +178,42 @@ export default function Viewer({ streamId }) {
     }
   };
 
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      try {
+        await remoteVideoRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error('Failed to enter fullscreen:', err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error('Failed to exit fullscreen:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
     <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ flex: 1 }}>
         <video ref={remoteVideoRef} autoPlay playsInline controls={false} style={{ width: "100%", maxWidth: 720, background: "black" }} />
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: '10px' }}>
           {!connected ? <small>Connecting...</small> : <small>Live</small>}
+          <button onClick={toggleFullscreen} style={{ padding: '5px 10px', cursor: 'pointer' }}>
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </button>
         </div>
       </div>
 
