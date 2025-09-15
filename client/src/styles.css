@@ -9,3 +9,11 @@ input { padding:8px; border-radius:6px; border:1px solid #d1d5db }
 
 
 small { color:#6b7280 }
+
+.comments-section { border:1px solid #e5e7eb; border-radius:8px; padding:12px; background:white }
+.comments-list { max-height:400px; overflow-y:auto; margin-bottom:12px }
+.comment { margin-bottom:8px; padding:8px; background:#f9fafb; border-radius:6px }
+.comment strong { color:#374151 }
+.comment small { color:#9ca3af; font-size:12px }
+.comment-form { display:flex; gap:8px }
+.comment-form input { flex:1 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import API from "./api";
 
 const SIGNALING_SERVER =
   import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
@@ -19,6 +20,9 @@ export default function Broadcaster({ streamId, onStop }) {
   const localStreamRef = useRef(null);
 
   const [publishing, setPublishing] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [username, setUsername] = useState("Broadcaster");
 
   // Make sure local video updates when stream changes
   useEffect(() => {
@@ -41,10 +45,18 @@ export default function Broadcaster({ streamId, onStop }) {
       const socket = io(SIGNALING_SERVER);
       socketRef.current = socket;
 
-      socket.on("connect", () =>
-        console.log("broadcaster socket connected", socket.id)
-      );
-      socket.emit("register-broadcaster", { streamId });
+      socket.on("connect", async () => {
+        console.log("broadcaster socket connected", socket.id);
+        socket.emit("register-broadcaster", { streamId });
+
+        // Fetch existing comments
+        try {
+          const response = await API.get(`/comments/${streamId}`);
+          setComments(response.data);
+        } catch (err) {
+          console.error("Failed to fetch comments:", err);
+        }
+      });
 
       // viewer -> sends offer (from viewerId)
       socket.on("offer", async ({ from, sdp }) => {
@@ -107,6 +119,11 @@ export default function Broadcaster({ streamId, onStop }) {
         console.log("socket disconnected");
       });
 
+      // Listen for new comments
+      socket.on("comment", (comment) => {
+        setComments(prev => [...prev, comment]);
+      });
+
       setPublishing(true);
     } catch (err) {
       console.error("startBroadcast error:", err);
@@ -136,33 +153,76 @@ export default function Broadcaster({ streamId, onStop }) {
     if (onStop) onStop();
   }
 
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      socketRef.current.emit("new-comment", {
+        streamId,
+        username,
+        text: newComment.trim()
+      });
+      setNewComment("");
+    } catch (err) {
+      console.error("Failed to post comment:", err);
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center p-4">
-      <h2 className="text-lg font-bold mb-2">Broadcasting</h2>
+    <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div style={{ flex: 1 }}>
+        <h2 className="text-lg font-bold mb-2">Broadcasting</h2>
 
-      <video
-        ref={localVideoRef}
-        autoPlay
-        muted
-        playsInline
-        style={{
-          width: "100%",
-          maxWidth: 720,
-          background: "black",
-          borderRadius: "8px",
-        }}
-      />
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          playsInline
+          style={{
+            width: "100%",
+            maxWidth: 720,
+            background: "black",
+            borderRadius: "8px",
+          }}
+        />
 
-      <div style={{ marginTop: 12 }}>
-        {!publishing ? (
-          <button type="button" onClick={startBroadcast}>
-            Start Broadcasting
-          </button>
-        ) : (
-          <button type="button" onClick={stopBroadcast}>
-            Stop Broadcasting
-          </button>
-        )}
+        <div style={{ marginTop: 12 }}>
+          {!publishing ? (
+            <button type="button" onClick={startBroadcast}>
+              Start Broadcasting
+            </button>
+          ) : (
+            <button type="button" onClick={stopBroadcast}>
+              Stop Broadcasting
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flex: 1, maxWidth: "400px" }}>
+        <h3>Comments</h3>
+        <div className="comments-section">
+          <div className="comments-list">
+            {comments.map((comment, index) => (
+              <div key={index} className="comment">
+                <strong>{comment.username}:</strong> {comment.text}
+                <br />
+                <small>{new Date(comment.createdAt).toLocaleTimeString()}</small>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handlePostComment} className="comment-form">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Type a comment..."
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div>
       </div>
     </div>
   );

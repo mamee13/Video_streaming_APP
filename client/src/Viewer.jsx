@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import API from "./api";
 
 const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
 const ICE_CONFIG = {
@@ -20,6 +21,9 @@ export default function Viewer({ streamId }) {
   const incomingCandidatesRef = useRef([]); // remote -> local (buffer until remote desc set)
 
   const [connected, setConnected] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [username, setUsername] = useState(`Viewer${Math.floor(Math.random() * 1000)}`);
 
   useEffect(() => {
     let mounted = true;
@@ -29,9 +33,17 @@ export default function Viewer({ streamId }) {
         const socket = io(SIGNALING_SERVER);
         socketRef.current = socket;
 
-        socket.on("connect", () => {
+        socket.on("connect", async () => {
           console.log("viewer connected", socket.id);
           socket.emit("join-stream", { streamId, role: "viewer" });
+
+          // Fetch existing comments
+          try {
+            const response = await API.get(`/comments/${streamId}`);
+            setComments(response.data);
+          } catch (err) {
+            console.error("Failed to fetch comments:", err);
+          }
         });
 
         // set up RTCPeerConnection
@@ -122,6 +134,11 @@ export default function Viewer({ streamId }) {
           }
         });
 
+        // Listen for new comments
+        socket.on("comment", (comment) => {
+          setComments(prev => [...prev, comment]);
+        });
+
         // Create recvonly transceivers to ensure offer contains m= lines
         pc.addTransceiver("video", { direction: "recvonly" });
         pc.addTransceiver("audio", { direction: "recvonly" });
@@ -144,11 +161,54 @@ export default function Viewer({ streamId }) {
     };
   }, [streamId]);
 
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      socketRef.current.emit("new-comment", {
+        streamId,
+        username,
+        text: newComment.trim()
+      });
+      setNewComment("");
+    } catch (err) {
+      console.error("Failed to post comment:", err);
+    }
+  };
+
   return (
-    <div>
-      <video ref={remoteVideoRef} autoPlay playsInline controls={false} style={{ width: "100%", maxWidth: 720, background: "black" }} />
-      <div style={{ marginTop: 8 }}>
-        {!connected ? <small>Connecting...</small> : <small>Live</small>}
+    <div style={{ display: "flex", gap: "20px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div style={{ flex: 1 }}>
+        <video ref={remoteVideoRef} autoPlay playsInline controls={false} style={{ width: "100%", maxWidth: 720, background: "black" }} />
+        <div style={{ marginTop: 8 }}>
+          {!connected ? <small>Connecting...</small> : <small>Live</small>}
+        </div>
+      </div>
+
+      <div style={{ flex: 1, maxWidth: "400px" }}>
+        <h3>Comments</h3>
+        <div className="comments-section">
+          <div className="comments-list">
+            {comments.map((comment, index) => (
+              <div key={index} className="comment">
+                <strong>{comment.username}:</strong> {comment.text}
+                <br />
+                <small>{new Date(comment.createdAt).toLocaleTimeString()}</small>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={handlePostComment} className="comment-form">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Type a comment..."
+            />
+            <button type="submit">Send</button>
+          </form>
+        </div>
       </div>
     </div>
   );

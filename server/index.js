@@ -14,6 +14,7 @@ const { Server } = require('socket.io');
 
 const Stream = require('./models/Stream');
 const User = require('./models/User');
+const Comment = require('./models/Comment');
 
 // Initialize Express app
 const app = express();
@@ -70,6 +71,36 @@ app.post('/streams/:id/stop', async (req, res) => {
   try {
     await Stream.findByIdAndUpdate(req.params.id, { isLive: false });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// REST API Endpoints for Comments
+
+/**
+ * Create a new comment
+ * POST /comments
+ * Body: { streamId: string, username: string, text: string }
+ */
+app.post('/comments', async (req, res) => {
+  try {
+    const { streamId, username, text } = req.body;
+    const comment = await Comment.create({ streamId, username, text });
+    res.json(comment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Get comments for a stream
+ * GET /comments/:streamId
+ */
+app.get('/comments/:streamId', async (req, res) => {
+  try {
+    const comments = await Comment.find({ streamId: req.params.streamId }).sort({ createdAt: 1 });
+    res.json(comments);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -153,6 +184,22 @@ io.on('connection', (socket) => {
   socket.on('ice-candidate', ({ to, candidate }) => {
     if (!to) return;
     io.to(to).emit('ice-candidate', { from: socket.id, candidate });
+  });
+
+  /**
+   * Handle new comment
+   * Event: new-comment
+   * Data: { streamId: string, username: string, text: string }
+   */
+  socket.on('new-comment', async ({ streamId, username, text }) => {
+    try {
+      // Save comment to database
+      const comment = await Comment.create({ streamId, username, text });
+      // Broadcast to all in the stream room
+      io.to(streamId).emit('comment', comment);
+    } catch (err) {
+      console.error('Error saving comment:', err);
+    }
   });
 
   /**
