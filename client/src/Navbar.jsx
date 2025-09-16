@@ -18,6 +18,11 @@ export default function Navbar() {
         {user ? (
           <>
             <span>Welcome, {user.name}</span>
+            <Link to="/profile">
+              <button style={{ padding: "6px 12px", background: "#28a745", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                Profile
+              </button>
+            </Link>
             <Link to="/create-stream">
               <button style={{ padding: "6px 12px", background: "#007bff", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>
                 Create Stream
