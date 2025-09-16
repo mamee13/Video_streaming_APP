@@ -223,10 +223,23 @@ return (
     </div>
 
     {/* Comments */}
-    <div style={{ width: "30vw", height: "100vh", background: "#f8f8f8", overflowY: "auto" }}>
-      <div style={{ padding: "20px" }}>
+    <div style={{ width: "30vw", height: "100vh", background: "#f8f8f8", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "20px 20px 0 20px" }}>
         <h3>Comments</h3>
-        <form onSubmit={handlePostComment} style={{ marginBottom: 10, display: "flex", gap: "10px" }}>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
+        <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "6px", background: "#fff" }}>
+          {comments.map((c, i) => (
+            <div key={i} style={{ marginBottom: "8px" }}>
+              <strong>{c.username}: </strong>{c.text}
+              <br />
+              <small>{new Date(c.createdAt).toLocaleTimeString()}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: "10px 20px 20px 20px" }}>
+        <form onSubmit={handlePostComment} style={{ display: "flex", gap: "10px" }}>
           <input
             type="text"
             value={newComment}
@@ -236,15 +249,6 @@ return (
           />
           <button type="submit">Send</button>
         </form>
-        <div style={{ overflowY: "auto", border: "1px solid #ccc", padding: "10px", borderRadius: "6px", background: "#fff" }}>
-          {comments.map((c, i) => (
-            <div key={i} style={{ marginBottom: "8px" }}>
-              <strong>{c.username}: </strong>{c.text}
-              <br />
-              <small>{new Date(c.createdAt).toLocaleTimeString()}</small>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   </div>
