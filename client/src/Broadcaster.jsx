@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import API from "./api";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
-const SIGNALING_SERVER =
-  import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
-
+const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
 const ICE_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -18,10 +18,11 @@ export default function Broadcaster({ streamId, onStop }) {
   const [publishing, setPublishing] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [username, setUsername] = useState("Broadcaster");
-  const [volume, setVolume] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [username] = useState("Broadcaster");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [streamTitle, setStreamTitle] = useState("Live Broadcast");
 
   useEffect(() => {
     if (localVideoRef.current && localStreamRef.current) {
@@ -31,10 +32,7 @@ export default function Broadcaster({ streamId, onStop }) {
 
   async function startBroadcast() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
@@ -50,6 +48,21 @@ export default function Broadcaster({ streamId, onStop }) {
           setComments(response.data);
         } catch (err) {
           console.error("Failed to fetch comments:", err);
+        }
+
+        try {
+          const response = await API.get(`/streams/${streamId}/reactions`);
+          setLikes(response.data.likes);
+          setDislikes(response.data.dislikes);
+        } catch (err) {
+          console.error("Failed to fetch reactions:", err);
+        }
+
+        try {
+          const streamResponse = await API.get(`/streams/${streamId}`);
+          setStreamTitle(streamResponse.data.title || "Live Broadcast");
+        } catch (err) {
+          console.error("Failed to fetch stream:", err);
         }
       });
 
@@ -91,6 +104,11 @@ export default function Broadcaster({ streamId, onStop }) {
         setComments((prev) => [...prev, comment]);
       });
 
+      socket.on("reaction-update", ({ likes, dislikes }) => {
+        setLikes(likes);
+        setDislikes(dislikes);
+      });
+
       setPublishing(true);
     } catch (err) {
       console.error("startBroadcast error:", err);
@@ -113,11 +131,7 @@ export default function Broadcaster({ streamId, onStop }) {
   const handlePostComment = (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    socketRef.current.emit("new-comment", {
-      streamId,
-      username,
-      text: newComment.trim(),
-    });
+    socketRef.current.emit("new-comment", { streamId, username, text: newComment.trim() });
     setNewComment("");
   };
 
@@ -132,8 +146,7 @@ export default function Broadcaster({ streamId, onStop }) {
   };
 
   return (
-    <div style={{ width: "96vw", height: "100vh", display: "flex", flexDirection: "row", background: "#000", margin: 0, padding: 0, overflow: "hidden" }}>
-
+    <div style={{ width: "93vw", height: "100vh", display: "flex", flexDirection: "row", background: "#000", margin: 0, padding: 0, overflow: "hidden" }}>
       {/* Video Container */}
       <div style={{ position: "relative", width: "70vw", height: "100vh" }}>
         <video
@@ -141,31 +154,21 @@ export default function Broadcaster({ streamId, onStop }) {
           autoPlay
           muted
           playsInline
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            background: "black",
-            display: "block",
-          }}
+          style={{ width: "100%", height: "100%", objectFit: "contain", background: "black", display: "block" }}
         />
         {/* Overlay Controls */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px", background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", gap: "10px", color: "#fff" }}>
           {!publishing ? <small>Ready</small> : <small style={{ color: "red", fontWeight: "bold" }}>● Broadcasting</small>}
           {!publishing ? (
-            <button type="button" onClick={startBroadcast}>
-              Start Broadcasting
-            </button>
+            <button type="button" onClick={startBroadcast}>Start Broadcasting</button>
           ) : (
-            <button type="button" onClick={stopBroadcast}>
-              Stop Broadcasting
-            </button>
+            <button type="button" onClick={stopBroadcast}>Stop Broadcasting</button>
           )}
           {publishing && (
-            <button onClick={toggleFullscreen}>
-              {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-            </button>
+            <button onClick={toggleFullscreen}>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</button>
           )}
+          {publishing && <button disabled>👍 {likes}</button>}
+          {publishing && <button disabled>👎 {dislikes}</button>}
         </div>
       </div>
 
@@ -175,15 +178,13 @@ export default function Broadcaster({ streamId, onStop }) {
           <h3>Comments</h3>
         </div>
         <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 20px" }}>
-          <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "6px", background: "#fff" }}>
-            {comments.map((comment, index) => (
-              <div key={index} style={{ marginBottom: "8px" }}>
-                <strong>{comment.username}:</strong> {comment.text}
-                <br />
-                <small>{new Date(comment.createdAt).toLocaleTimeString()}</small>
-              </div>
-            ))}
-          </div>
+          {comments.map((c, i) => (
+            <div key={i} style={{ marginBottom: "8px", padding: "10px", borderRadius: "6px", background: "#fff", border: "1px solid #ccc" }}>
+              <strong>{c.username}: </strong>{c.text}
+              <br />
+              <small>{new Date(c.createdAt).toLocaleTimeString()}</small>
+            </div>
+          ))}
         </div>
         <div style={{ padding: "10px 20px 20px 20px" }}>
           <form onSubmit={handlePostComment} style={{ display: "flex", gap: "10px" }}>

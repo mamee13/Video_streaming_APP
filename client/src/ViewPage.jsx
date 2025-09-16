@@ -29,7 +29,7 @@ export default function ViewPage() {
   if (!stream) return <div>Stream not found</div>;
 
   return (
-    <div style={{ marginTop: 12, padding: 12, background: "white", borderRadius: 8 }}>
+    <div style={{ marginTop: 80, padding: 12, background: "white", borderRadius: 8 }}>
       <h3>Viewer — {stream.title}</h3>
       <Viewer streamId={stream._id} />
       <div style={{ marginTop: 8 }}>
