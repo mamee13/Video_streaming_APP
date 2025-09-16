@@ -195,7 +195,7 @@ export default function Viewer({ streamId }) {
   };
 
 return (
-  <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "row", background: "#000", margin: 0, padding: 0 }}>
+  <div style={{ width: "93vw", height: "100vh", display: "flex", flexDirection: "row", background: "#000", margin: 0, padding: 0, overflow: "hidden" }}>
 
     {/* Video Container */}
     <div style={{ position: "relative", width: "70vw", height: "100vh" }}>
@@ -227,7 +227,7 @@ return (
       <div style={{ padding: "20px 20px 0 20px" }}>
         <h3>Comments</h3>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 20px" }}>
         <div style={{ border: "1px solid #ccc", padding: "10px", borderRadius: "6px", background: "#fff" }}>
           {comments.map((c, i) => (
             <div key={i} style={{ marginBottom: "8px" }}>
