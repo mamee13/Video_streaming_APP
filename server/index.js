@@ -15,6 +15,7 @@ const { Server } = require('socket.io');
 const Stream = require('./models/Stream');
 const User = require('./models/User');
 const Comment = require('./models/Comment');
+const jwt = require('jsonwebtoken');
 
 // Initialize Express app
 const app = express();
@@ -182,6 +183,44 @@ app.get('/comments/:streamId', async (req, res) => {
   try {
     const comments = await Comment.find({ streamId: req.params.streamId }).sort({ createdAt: 1 });
     res.json(comments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// REST API Endpoints for Authentication
+
+/**
+ * Register a new user
+ * POST /register
+ * Body: { name: string, email: string, password: string }
+ */
+app.post('/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const user = await User.create({ name, email, password });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+    res.json({ user, token });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * Login a user
+ * POST /login
+ * Body: { email: string, password: string }
+ */
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (user && (await user.matchPassword(password))) {
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+      res.json({ user, token });
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

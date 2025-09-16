@@ -16,9 +16,10 @@ export default function CreateStream() {
   }
 
   return (
-    <div style={{ padding: 12, background: "white", borderRadius: 8, maxWidth: 400, margin: "0 auto" }}>
+    <div style={{ padding: 12, width: '100%', margin: 0 }}>
       <h3>Start broadcasting</h3>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ background: "white", borderRadius: 8, padding: 12, boxShadow: "0 2px 4px rgba(0,0,0,0.1)", maxWidth: 400, margin: "0 auto" }}>
+        <div style={{ marginBottom: 12 }}>
         <label style={{ display: "block", marginBottom: 4, fontWeight: "bold" }}>
           Stream Title: <span style={{ color: "red" }}>*</span>
         </label>
@@ -45,12 +46,19 @@ export default function CreateStream() {
           onClick={createStream}
           disabled={!title.trim()}
           style={{
-            opacity: !title.trim() ? 0.5 : 1,
-            cursor: !title.trim() ? "not-allowed" : "pointer"
+            width: "100%",
+            padding: "6px 0",
+            background: "#007bff",
+            color: "white",
+            border: "none",
+            borderRadius: 4,
+            cursor: !title.trim() ? "not-allowed" : "pointer",
+            opacity: !title.trim() ? 0.5 : 1
           }}
         >
           Create & Start Broadcast
         </button>
+      </div>
       </div>
     </div>
   );
