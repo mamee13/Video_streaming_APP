@@ -33,6 +33,8 @@ export default function Home() {
               <span style={{ color: "#666" }}>Stream Thumbnail</span>
             </div>
             <h4 style={{ margin: 0, marginBottom: 4 }}>{s.title}</h4>
+            <small>by {s.broadcasterId?.username || 'Unknown'}</small>
+            <br />
             <small>{new Date(s.createdAt).toLocaleString()}</small>
             <div style={{ marginTop: 8 }}>
               <button style={{ width: "100%", padding: "6px 0", background: "#007bff", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>Watch Live</button>

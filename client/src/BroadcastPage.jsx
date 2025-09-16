@@ -32,7 +32,7 @@ export default function BroadcastPage() {
     } catch (err) {
       console.warn("Stop stream error", err);
     } finally {
-      navigate("/");
+      navigate("/home");
     }
   }
 
@@ -42,6 +42,7 @@ export default function BroadcastPage() {
   return (
     <div>
       <h3>Broadcaster — {stream.title}</h3>
+      <p>Streaming by: {stream.broadcasterId?.username || 'Unknown'}</p>
       <Broadcaster streamId={stream._id} onStop={stopStream} />
     </div>
   );

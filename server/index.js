@@ -71,7 +71,7 @@ app.post('/streams', async (req, res) => {
  */
 app.get('/streams', async (req, res) => {
   try {
-    const streams = await Stream.find({ isLive: true }).sort({ createdAt: -1 });
+    const streams = await Stream.find({ isLive: true }).populate('broadcasterId', 'username').sort({ createdAt: -1 });
     res.json(streams);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -84,7 +84,7 @@ app.get('/streams', async (req, res) => {
  */
 app.get('/streams/:id', async (req, res) => {
   try {
-    const stream = await Stream.findById(req.params.id);
+    const stream = await Stream.findById(req.params.id).populate('broadcasterId', 'username');
     if (!stream) return res.status(404).json({ error: 'Stream not found' });
     res.json(stream);
   } catch (err) {

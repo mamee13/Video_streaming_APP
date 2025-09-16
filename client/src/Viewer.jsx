@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import API from "./api";
+import { useAuth } from "./AuthContext";
 
 const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_SERVER || "http://localhost:4000";
 const ICE_CONFIG = {
@@ -10,6 +11,7 @@ const ICE_CONFIG = {
 };
 
 export default function Viewer({ streamId }) {
+  const { user } = useAuth();
   const remoteVideoRef = useRef(null);
   const socketRef = useRef(null);
   const pcRef = useRef(null);
@@ -21,7 +23,7 @@ export default function Viewer({ streamId }) {
   const [connected, setConnected] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [username] = useState(`Viewer${Math.floor(Math.random() * 1000)}`);
+  const [username] = useState(user?.username || `Viewer${Math.floor(Math.random() * 1000)}`);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);

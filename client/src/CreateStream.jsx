@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "./api";
+import { useAuth } from "./AuthContext";
 
 export default function CreateStream() {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const navigate = useNavigate();
 
   async function createStream() {
     try {
-      const res = await API.post("/streams", { title });
+      const res = await API.post("/streams", { title, broadcasterId: user._id });
       navigate(`/broadcast/${res.data._id}`);
     } catch (err) {
       console.warn("Create stream error", err);
