@@ -23,7 +23,7 @@ export default function Viewer({ streamId }) {
   const [connected, setConnected] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [username] = useState(user?.username || `Viewer${Math.floor(Math.random() * 1000)}`);
+  const [username] = useState(user?.username || "");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -154,6 +154,10 @@ export default function Viewer({ streamId }) {
   const handlePostComment = (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+    if (!user) {
+      alert("You must be logged in to comment.");
+      return;
+    }
     socketRef.current.emit("new-comment", { streamId, username, text: newComment.trim() });
     setNewComment("");
   };
@@ -246,10 +250,11 @@ return (
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Type a comment..."
+            placeholder={user ? "Type a comment..." : "Login to comment..."}
             style={{ flex: 1 }}
+            disabled={!user}
           />
-          <button type="submit">Send</button>
+          <button type="submit" disabled={!user}>Send</button>
         </form>
       </div>
     </div>

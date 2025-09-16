@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import API from "./api";
+import { useAuth } from "./AuthContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -10,6 +11,7 @@ const ICE_CONFIG = {
 };
 
 export default function Broadcaster({ streamId, onStop }) {
+  const { user } = useAuth();
   const localVideoRef = useRef(null);
   const socketRef = useRef(null);
   const pcsRef = useRef(new Map());
@@ -18,7 +20,7 @@ export default function Broadcaster({ streamId, onStop }) {
   const [publishing, setPublishing] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [username] = useState("Broadcaster");
+  const [username] = useState(user?.username || "Broadcaster");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
