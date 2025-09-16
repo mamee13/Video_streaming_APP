@@ -64,6 +64,20 @@ app.get('/streams', async (req, res) => {
 });
 
 /**
+ * Get a specific stream by ID
+ * GET /streams/:id
+ */
+app.get('/streams/:id', async (req, res) => {
+  try {
+    const stream = await Stream.findById(req.params.id);
+    if (!stream) return res.status(404).json({ error: 'Stream not found' });
+    res.json(stream);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * Stop a stream
  * POST /streams/:id/stop
  */
