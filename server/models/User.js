@@ -5,6 +5,7 @@ const Warning = require("./warningModel.js"); // import Warning model
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    username: { type: String, unique: true, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
 
@@ -43,6 +44,13 @@ const userSchema = new mongoose.Schema(
     warnings: {
       type: Number,
       default: 0,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
     },
   },
   { timestamps: true }

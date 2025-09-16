@@ -4,8 +4,6 @@
  * using Express, Socket.IO, and MongoDB.
  */
 
-require('dotenv').config();
-
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -16,6 +14,10 @@ const Stream = require('./models/Stream');
 const User = require('./models/User');
 const Comment = require('./models/Comment');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 // Initialize Express app
 const app = express();
@@ -28,6 +30,18 @@ app.use(express.json());
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/webrtc_demo';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
+
+// Nodemailer transporter with OAuth2
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    type: 'OAuth2',
+    user: process.env.EMAIL_USER,
+    clientId: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    refreshToken: process.env.REFRESH_TOKEN,
+  }
+});
 
 // Connect to MongoDB
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -193,14 +207,14 @@ app.get('/comments/:streamId', async (req, res) => {
 /**
  * Register a new user
  * POST /register
- * Body: { name: string, email: string, password: string }
+ * Body: { name: string, username: string, email: string, password: string }
  */
 app.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    const user = await User.create({ name, email, password });
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
-    res.json({ user, token });
+    const { name, username, email, password } = req.body;
+    const user = await User.create({ name, username, email, password, emailVerified: true });
+
+    res.json({ message: 'User registered successfully.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -223,6 +237,25 @@ app.post('/login', async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Verify email
+ * GET /verify-email?token=...
+ */
+app.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const user = await User.findOneAndUpdate({ email: decoded.email }, { emailVerified: true, verificationToken: null });
+    if (user) {
+      res.send('Email verified successfully! You can now login.');
+    } else {
+      res.status(400).send('Invalid token');
+    }
+  } catch (err) {
+    res.status(400).send('Invalid or expired token');
   }
 });
 

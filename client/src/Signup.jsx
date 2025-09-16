@@ -8,6 +8,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -29,11 +30,12 @@ const Signup = () => {
     try {
       const response = await API.post('/register', {
         name: formData.name,
+        username: formData.username,
         email: formData.email,
         password: formData.password
       });
-      login(response.data.user, response.data.token);
-      navigate('/home');
+      alert(response.data.message);
+      navigate('/');
     } catch (error) {
       alert('Signup failed: ' + error.response.data.error);
     }
@@ -49,6 +51,16 @@ const Signup = () => {
             type="text"
             name="name"
             value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div>
+          <label>Username:</label>
+          <input
+            type="text"
+            name="username"
+            value={formData.username}
             onChange={handleChange}
             required
           />
