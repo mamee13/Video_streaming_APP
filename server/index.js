@@ -43,7 +43,7 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.post('/streams', async (req, res) => {
   try {
     const { title, broadcasterId } = req.body;
-    const stream = await Stream.create({ title, broadcasterId, isLive: true });
+    const stream = await Stream.create({ title, broadcasterId, isLive: false });
     res.json(stream);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -84,6 +84,19 @@ app.get('/streams/:id', async (req, res) => {
 app.post('/streams/:id/stop', async (req, res) => {
   try {
     await Stream.findByIdAndUpdate(req.params.id, { isLive: false });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Start a stream
+ * POST /streams/:id/start
+ */
+app.post('/streams/:id/start', async (req, res) => {
+  try {
+    await Stream.findByIdAndUpdate(req.params.id, { isLive: true });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

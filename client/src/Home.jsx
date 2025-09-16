@@ -4,7 +4,6 @@ import API from "./api";
 
 export default function Home() {
   const [streams, setStreams] = useState([]);
-  const [title, setTitle] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,75 +19,28 @@ export default function Home() {
     }
   }
 
-  async function createStream() {
-    try {
-      const res = await API.post("/streams", { title });
-      navigate(`/broadcast/${res.data._id}`);
-      // refresh list so other tabs/devices see it
-      fetchStreams();
-    } catch (err) {
-      console.warn("Create stream error", err);
-    }
-  }
+
+  const liveStreams = streams.filter(s => s.isLive);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-      <div style={{ padding: 12, background: "white", borderRadius: 8 }}>
-        <h3>Start broadcasting</h3>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontWeight: "bold" }}>
-            Stream Title: <span style={{ color: "red" }}>*</span>
-          </label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter your stream title..."
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: !title.trim() ? "2px solid #ff6b6b" : "1px solid #ddd",
-              fontSize: "16px"
-            }}
-          />
-          {!title.trim() && (
-            <small style={{ color: "#ff6b6b", marginTop: 4, display: "block" }}>
-              Stream title is required
-            </small>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={createStream}
-            disabled={!title.trim()}
-            style={{
-              opacity: !title.trim() ? 0.5 : 1,
-              cursor: !title.trim() ? "not-allowed" : "pointer"
-            }}
-          >
-            Create & Start Broadcast
-          </button>
-          <button onClick={fetchStreams}>Refresh list</button>
-        </div>
-      </div>
-
-      <div style={{ padding: 12, background: "white", borderRadius: 8 }}>
-        <h3>Live streams</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {streams.length === 0 && <small>No active streams</small>}
-          {streams.map((s) => (
-            <div key={s._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 6 }}>
-              <div>
-                <strong>{s.title}</strong>
-                <div><small>{new Date(s.createdAt).toLocaleString()}</small></div>
-              </div>
-              <div>
-                <button onClick={() => navigate(`/view/${s._id}`)}>Watch</button>
-              </div>
+    <div style={{ padding: 12, width: '100%', margin: 0 }}>
+      <h3>Live streams</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
+        {liveStreams.length === 0 && <small>No active streams</small>}
+        {liveStreams.map((s) => (
+          <div key={s._id} style={{ background: "white", borderRadius: 8, padding: 12, boxShadow: "0 2px 4px rgba(0,0,0,0.1)", cursor: "pointer" }} onClick={() => navigate(`/view/${s._id}`)}>
+            <div style={{ width: "100%", height: 150, background: "#f0f0f0", borderRadius: 4, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#666" }}>Stream Thumbnail</span>
             </div>
-          ))}
-        </div>
+            <h4 style={{ margin: 0, marginBottom: 4 }}>{s.title}</h4>
+            <small>{new Date(s.createdAt).toLocaleString()}</small>
+            <div style={{ marginTop: 8 }}>
+              <button style={{ width: "100%", padding: "6px 0", background: "#007bff", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>Watch Live</button>
+            </div>
+          </div>
+        ))}
       </div>
+      <button onClick={fetchStreams} style={{ marginTop: 12, padding: "8px 16px", background: "#28a745", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>Refresh</button>
     </div>
   );
 }

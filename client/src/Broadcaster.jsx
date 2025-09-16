@@ -44,6 +44,13 @@ export default function Broadcaster({ streamId, onStop }) {
         socket.emit("register-broadcaster", { streamId });
 
         try {
+          await API.post(`/streams/${streamId}/start`);
+          console.log("Stream started");
+        } catch (err) {
+          console.error("Failed to start stream:", err);
+        }
+
+        try {
           const response = await API.get(`/comments/${streamId}`);
           setComments(response.data);
         } catch (err) {
@@ -115,7 +122,14 @@ export default function Broadcaster({ streamId, onStop }) {
     }
   }
 
-  function stopBroadcast() {
+  async function stopBroadcast() {
+    try {
+      await API.post(`/streams/${streamId}/stop`);
+      console.log("Stream stopped");
+    } catch (err) {
+      console.error("Failed to stop stream:", err);
+    }
+
     socketRef.current?.disconnect();
     pcsRef.current.forEach((pc) => pc.close());
     pcsRef.current.clear();
