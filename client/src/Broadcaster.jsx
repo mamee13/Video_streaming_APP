@@ -147,7 +147,11 @@ export default function Broadcaster({ streamId, onStop }) {
   const handlePostComment = (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    socketRef.current.emit("new-comment", { streamId, username, text: newComment.trim() });
+    if (!user) {
+      alert("You must be logged in to comment.");
+      return;
+    }
+    socketRef.current.emit("new-comment", { streamId, userId: user._id, username, text: newComment.trim() });
     setNewComment("");
   };
 

@@ -31,10 +31,23 @@ export default function Viewer({ streamId }) {
   const [dislikes, setDislikes] = useState(0);
   const [stream, setStream] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followingList, setFollowingList] = useState([]);
 
   useEffect(() => {
     (async () => {
       try {
+        // Fetch user profile if logged in
+        let profileData = null;
+        if (user) {
+          try {
+            const profileRes = await API.get('/profile');
+            profileData = profileRes.data;
+            setFollowingList(profileRes.data.following.map(f => f._id));
+          } catch (err) {
+            console.error("Failed to fetch profile:", err);
+          }
+        }
+
         const socket = io(SIGNALING_SERVER);
         socketRef.current = socket;
 
@@ -60,10 +73,9 @@ export default function Viewer({ streamId }) {
           try {
             const response = await API.get(`/streams/${streamId}`);
             setStream(response.data);
-            if (user && response.data.broadcasterId) {
-              // Check if following
-              const profileRes = await API.get('/profile');
-              setIsFollowing(profileRes.data.following.some(f => f._id === response.data.broadcasterId._id));
+            if (user && response.data.broadcasterId && profileData) {
+              // Check if following broadcaster
+              setIsFollowing(profileData.following.some(f => f._id === response.data.broadcasterId._id));
             }
           } catch (err) {
             console.error("Failed to fetch stream:", err);
@@ -172,7 +184,7 @@ export default function Viewer({ streamId }) {
       alert("You must be logged in to comment.");
       return;
     }
-    socketRef.current.emit("new-comment", { streamId, username, text: newComment.trim() });
+    socketRef.current.emit("new-comment", { streamId, userId: user._id, username, text: newComment.trim() });
     setNewComment("");
   };
 
@@ -226,6 +238,22 @@ export default function Viewer({ streamId }) {
       }
     } catch (err) {
       console.error("Failed to follow/unfollow:", err);
+    }
+  };
+
+  const handleFollowCommenter = async (commenterId) => {
+    if (!user) return;
+    try {
+      const isFollowingCommenter = followingList.includes(commenterId);
+      if (isFollowingCommenter) {
+        await API.post(`/users/${commenterId}/unfollow`);
+        setFollowingList(prev => prev.filter(id => id !== commenterId));
+      } else {
+        await API.post(`/users/${commenterId}/follow`);
+        setFollowingList(prev => [...prev, commenterId]);
+      }
+    } catch (err) {
+      console.error("Failed to follow/unfollow commenter:", err);
     }
   };
 
@@ -284,6 +312,23 @@ return (
               <strong>{c.username}: </strong>{c.text}
               <br />
               <small>{new Date(c.createdAt).toLocaleTimeString()}</small>
+              {user && c.userId !== user._id && (
+                <button
+                  onClick={() => handleFollowCommenter(c.userId)}
+                  style={{
+                    marginLeft: '10px',
+                    backgroundColor: followingList.includes(c.userId) ? '#007bff' : '#28a745',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  {followingList.includes(c.userId) ? 'Following' : 'Follow'}
+                </button>
+              )}
             </div>
           ))}
         </div>

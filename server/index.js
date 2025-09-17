@@ -177,12 +177,12 @@ app.post('/streams/:id/dislike', async (req, res) => {
 /**
  * Create a new comment
  * POST /comments
- * Body: { streamId: string, username: string, text: string }
+ * Body: { streamId: string, userId: string, username: string, text: string }
  */
 app.post('/comments', async (req, res) => {
   try {
-    const { streamId, username, text } = req.body;
-    const comment = await Comment.create({ streamId, username, text });
+    const { streamId, userId, username, text } = req.body;
+    const comment = await Comment.create({ streamId, userId, username, text });
     res.json(comment);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -428,12 +428,12 @@ io.on('connection', (socket) => {
   /**
    * Handle new comment
    * Event: new-comment
-   * Data: { streamId: string, username: string, text: string }
+   * Data: { streamId: string, userId: string, username: string, text: string }
    */
-  socket.on('new-comment', async ({ streamId, username, text }) => {
+  socket.on('new-comment', async ({ streamId, userId, username, text }) => {
     try {
       // Save comment to database
-      const comment = await Comment.create({ streamId, username, text });
+      const comment = await Comment.create({ streamId, userId, username, text });
       // Broadcast to all in the stream room
       io.to(streamId).emit('comment', comment);
     } catch (err) {
