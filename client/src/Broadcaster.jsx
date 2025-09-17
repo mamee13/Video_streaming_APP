@@ -25,6 +25,7 @@ export default function Broadcaster({ streamId, onStop }) {
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
   const [streamTitle, setStreamTitle] = useState("Live Broadcast");
+  const connectedRef = useRef(false);
 
   useEffect(() => {
     if (localVideoRef.current && localStreamRef.current) {
@@ -33,12 +34,15 @@ export default function Broadcaster({ streamId, onStop }) {
   }, [publishing]);
 
   async function startBroadcast() {
+    if (connectedRef.current) return;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
       const socket = io(SIGNALING_SERVER);
+      connectedRef.current = true;
       socketRef.current = socket;
 
       socket.on("connect", async () => {
@@ -125,6 +129,8 @@ export default function Broadcaster({ streamId, onStop }) {
   }
 
   async function stopBroadcast() {
+    connectedRef.current = false;
+
     try {
       await API.post(`/streams/${streamId}/stop`);
       console.log("Stream stopped");
