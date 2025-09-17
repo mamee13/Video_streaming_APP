@@ -29,6 +29,8 @@ export default function Viewer({ streamId }) {
   const [isMuted, setIsMuted] = useState(false);
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
+  const [stream, setStream] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,6 +55,18 @@ export default function Viewer({ streamId }) {
             setDislikes(response.data.dislikes);
           } catch (err) {
             console.error("Failed to fetch reactions:", err);
+          }
+
+          try {
+            const response = await API.get(`/streams/${streamId}`);
+            setStream(response.data);
+            if (user && response.data.broadcasterId) {
+              // Check if following
+              const profileRes = await API.get('/profile');
+              setIsFollowing(profileRes.data.following.some(f => f._id === response.data.broadcasterId._id));
+            }
+          } catch (err) {
+            console.error("Failed to fetch stream:", err);
           }
         });
 
@@ -200,6 +214,21 @@ export default function Viewer({ streamId }) {
     setDislikes(res.data.dislikes);
   };
 
+  const handleFollow = async () => {
+    if (!user || !stream) return;
+    try {
+      if (isFollowing) {
+        await API.post(`/users/${stream.broadcasterId._id}/unfollow`);
+        setIsFollowing(false);
+      } else {
+        await API.post(`/users/${stream.broadcasterId._id}/follow`);
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error("Failed to follow/unfollow:", err);
+    }
+  };
+
 return (
   <div style={{ width: "93vw", height: "100vh", display: "flex", flexDirection: "row", background: "#000", margin: 0, padding: 0, overflow: "hidden" }}>
 
@@ -225,6 +254,21 @@ return (
         <button onClick={toggleFullscreen}>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</button>
         <button onClick={handleLike}>👍 {likes}</button>
         <button onClick={handleDislike}>👎 {dislikes}</button>
+        {user && stream && (
+          <button
+            onClick={handleFollow}
+            style={{
+              backgroundColor: isFollowing ? '#007bff' : '#28a745',
+              color: '#fff',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {isFollowing ? 'Following' : 'Follow'}
+          </button>
+        )}
       </div>
     </div>
 

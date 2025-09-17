@@ -262,6 +262,71 @@ app.get('/profile', async (req, res) => {
 });
 
 /**
+ * Follow a user
+ * POST /users/:id/follow
+ */
+app.post('/users/:id/follow', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const currentUser = await User.findById(decoded.userId);
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ error: 'Target user not found' });
+
+    if (currentUser._id.equals(targetUser._id)) return res.status(400).json({ error: 'Cannot follow yourself' });
+
+    // Check if already following
+    if (currentUser.following.includes(targetUser._id)) {
+      return res.status(400).json({ error: 'Already following' });
+    }
+
+    // Add to following and followers
+    currentUser.following.push(targetUser._id);
+    targetUser.followers.push(currentUser._id);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.json({ message: 'Followed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Unfollow a user
+ * POST /users/:id/unfollow
+ */
+app.post('/users/:id/unfollow', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const currentUser = await User.findById(decoded.userId);
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) return res.status(404).json({ error: 'Target user not found' });
+
+    // Remove from following and followers
+    currentUser.following = currentUser.following.filter(id => !id.equals(targetUser._id));
+    targetUser.followers = targetUser.followers.filter(id => !id.equals(currentUser._id));
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.json({ message: 'Unfollowed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * Verify email
  * GET /verify-email?token=...
  */
